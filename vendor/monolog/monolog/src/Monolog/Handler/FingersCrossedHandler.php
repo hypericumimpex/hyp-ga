@@ -14,6 +14,7 @@ namespace Monolog\Handler;
 use Monolog\Handler\FingersCrossed\ErrorLevelActivationStrategy;
 use Monolog\Handler\FingersCrossed\ActivationStrategyInterface;
 use Monolog\Logger;
+use Monolog\ResettableInterface;
 
 /**
  * Buffers all records until a certain level is reached
@@ -130,24 +131,18 @@ class FingersCrossedHandler extends AbstractHandler
      */
     public function close()
     {
-        if (null !== $this->passthruLevel) {
-            $level = $this->passthruLevel;
-            $this->buffer = array_filter($this->buffer, function ($record) use ($level) {
-                return $record['level'] >= $level;
-            });
-            if (count($this->buffer) > 0) {
-                $this->handler->handleBatch($this->buffer);
-                $this->buffer = array();
-            }
-        }
+        $this->flushBuffer();
     }
 
-    /**
-     * Resets the state of the handler. Stops forwarding records to the wrapped handler.
-     */
     public function reset()
     {
-        $this->buffering = true;
+        $this->flushBuffer();
+
+        parent::reset();
+
+        if ($this->handler instanceof ResettableInterface) {
+            $this->handler->reset();
+        }
     }
 
     /**
@@ -159,5 +154,24 @@ class FingersCrossedHandler extends AbstractHandler
     {
         $this->buffer = array();
         $this->reset();
+    }
+
+    /**
+     * Resets the state of the handler. Stops forwarding records to the wrapped handler.
+     */
+    private function flushBuffer()
+    {
+        if (null !== $this->passthruLevel) {
+            $level = $this->passthruLevel;
+            $this->buffer = array_filter($this->buffer, function ($record) use ($level) {
+                return $record['level'] >= $level;
+            });
+            if (count($this->buffer) > 0) {
+                $this->handler->handleBatch($this->buffer);
+            }
+        }
+
+        $this->buffer = array();
+        $this->buffering = true;
     }
 }

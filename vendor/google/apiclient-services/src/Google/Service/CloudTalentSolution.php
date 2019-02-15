@@ -39,6 +39,7 @@ class Google_Service_CloudTalentSolution extends Google_Service
       "https://www.googleapis.com/auth/jobs";
 
   public $projects;
+  public $projects_clientEvents;
   public $projects_companies;
   public $projects_jobs;
   
@@ -70,18 +71,6 @@ class Google_Service_CloudTalentSolution extends Google_Service
                   'type' => 'string',
                   'required' => true,
                 ),
-                'type' => array(
-                  'location' => 'query',
-                  'type' => 'string',
-                ),
-                'scope' => array(
-                  'location' => 'query',
-                  'type' => 'string',
-                ),
-                'companyName' => array(
-                  'location' => 'query',
-                  'type' => 'string',
-                ),
                 'pageSize' => array(
                   'location' => 'query',
                   'type' => 'integer',
@@ -93,6 +82,43 @@ class Google_Service_CloudTalentSolution extends Google_Service
                 'languageCode' => array(
                   'location' => 'query',
                   'type' => 'string',
+                ),
+                'type' => array(
+                  'location' => 'query',
+                  'type' => 'string',
+                ),
+                'languageCodes' => array(
+                  'location' => 'query',
+                  'type' => 'string',
+                  'repeated' => true,
+                ),
+                'scope' => array(
+                  'location' => 'query',
+                  'type' => 'string',
+                ),
+                'companyName' => array(
+                  'location' => 'query',
+                  'type' => 'string',
+                ),
+              ),
+            ),
+          )
+        )
+    );
+    $this->projects_clientEvents = new Google_Service_CloudTalentSolution_Resource_ProjectsClientEvents(
+        $this,
+        $this->serviceName,
+        'clientEvents',
+        array(
+          'methods' => array(
+            'create' => array(
+              'path' => 'v3/{+parent}/clientEvents',
+              'httpMethod' => 'POST',
+              'parameters' => array(
+                'parent' => array(
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
                 ),
               ),
             ),

@@ -3,20 +3,20 @@
  * Plugin Name: HYP GA
  * Plugin URI: https://github.com/hypericumimpex/hyp-ga/
  * Description: Hypericum Google Analytics tracking with enhanced eCommerce tracking and custom event tracking
- * Author: SkyVerge
+ * Author: Romeo C.
  * Author URI: https://github.com/hypericumimpex/
- * Version: 1.6.5
+ * Version: 1.6.6
  * Text Domain: woocommerce-google-analytics-pro
  * Domain Path: /i18n/languages/
  *
- * Copyright: (c) 2015-2019, SkyVerge, Inc.
+ * Copyright: (c) 2015-2019, Hypericum Impex.
  *
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  *
- * @author    SkyVerge
+ * @author    Romeo C.
  * @category  Integration
- * @copyright Copyright (c) 2015-2019, SkyVerge, Inc.
+ * @copyright Copyright (c) 2015-2019, Hypericum Impex.
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  *
  * Woo: 1312497:d8aed8b7306b509eec1589e59abe319f
@@ -49,7 +49,7 @@ class WC_Google_Analytics_Pro_Loader {
 
 
 	/** minimum PHP version required by this plugin */
-	const MINIMUM_PHP_VERSION = '5.4.0';
+	const MINIMUM_PHP_VERSION = '5.6.0';
 
 	/** minimum WordPress version required by this plugin */
 	const MINIMUM_WP_VERSION = '4.4';

@@ -1,5 +1,9 @@
 *** WooCommerce Google Analytics Pro ***
 
+2019.02.12 - version 1.6.6
+ * Misc - Update Guzzle to v6
+ * Misc - Require PHP 5.6+
+
 2019.01.22 - version 1.6.5
  * Tweak - Send the document host name parameter in measurement protocol API requests
  * Fix - Harden code that may have produced a PHP error when a product can't be determined for ecommerce data JavaScript output

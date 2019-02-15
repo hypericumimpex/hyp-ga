@@ -4,12 +4,13 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit004f21ac1dbb0464b39579850643b95b
+class ComposerStaticInit0b87d6fb62eb77d52108de6426de8b76
 {
     public static $files = array (
-        'ad155f8f1cf0d418fe49e248db8c661b' => __DIR__ . '/..' . '/react/promise/src/functions_include.php',
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         'a0edc8309cc5e1d60e3047b5df6b7052' => __DIR__ . '/..' . '/guzzlehttp/psr7/src/functions_include.php',
+        'c964ee0ededf28c96ebd9db5099ef910' => __DIR__ . '/..' . '/guzzlehttp/promises/src/functions_include.php',
+        '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         'decc78cc4436b1292c6c0d151b19445c' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/bootstrap.php',
     );
 
@@ -17,10 +18,6 @@ class ComposerStaticInit004f21ac1dbb0464b39579850643b95b
         'p' => 
         array (
             'phpseclib\\' => 10,
-        ),
-        'R' => 
-        array (
-            'React\\Promise\\' => 14,
         ),
         'P' => 
         array (
@@ -34,9 +31,8 @@ class ComposerStaticInit004f21ac1dbb0464b39579850643b95b
         ),
         'G' => 
         array (
-            'GuzzleHttp\\Stream\\' => 18,
-            'GuzzleHttp\\Ring\\' => 16,
             'GuzzleHttp\\Psr7\\' => 16,
+            'GuzzleHttp\\Promise\\' => 19,
             'GuzzleHttp\\' => 11,
             'Google\\Auth\\' => 12,
         ),
@@ -50,10 +46,6 @@ class ComposerStaticInit004f21ac1dbb0464b39579850643b95b
         'phpseclib\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib',
-        ),
-        'React\\Promise\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/promise/src',
         ),
         'Psr\\Log\\' => 
         array (
@@ -71,17 +63,13 @@ class ComposerStaticInit004f21ac1dbb0464b39579850643b95b
         array (
             0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
         ),
-        'GuzzleHttp\\Stream\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/guzzlehttp/streams/src',
-        ),
-        'GuzzleHttp\\Ring\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/guzzlehttp/ringphp/src',
-        ),
         'GuzzleHttp\\Psr7\\' => 
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
+        ),
+        'GuzzleHttp\\Promise\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/guzzlehttp/promises/src',
         ),
         'GuzzleHttp\\' => 
         array (
@@ -119,10 +107,10 @@ class ComposerStaticInit004f21ac1dbb0464b39579850643b95b
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit004f21ac1dbb0464b39579850643b95b::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit004f21ac1dbb0464b39579850643b95b::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit004f21ac1dbb0464b39579850643b95b::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit004f21ac1dbb0464b39579850643b95b::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit0b87d6fb62eb77d52108de6426de8b76::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit0b87d6fb62eb77d52108de6426de8b76::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit0b87d6fb62eb77d52108de6426de8b76::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInit0b87d6fb62eb77d52108de6426de8b76::$classMap;
 
         }, null, ClassLoader::class);
     }

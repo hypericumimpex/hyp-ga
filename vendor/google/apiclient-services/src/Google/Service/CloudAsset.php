@@ -34,6 +34,8 @@ class Google_Service_CloudAsset extends Google_Service
   const CLOUD_PLATFORM =
       "https://www.googleapis.com/auth/cloud-platform";
 
+  public $folders;
+  public $folders_operations;
   public $organizations;
   public $organizations_operations;
   public $projects;
@@ -52,6 +54,46 @@ class Google_Service_CloudAsset extends Google_Service
     $this->version = 'v1beta1';
     $this->serviceName = 'cloudasset';
 
+    $this->folders = new Google_Service_CloudAsset_Resource_Folders(
+        $this,
+        $this->serviceName,
+        'folders',
+        array(
+          'methods' => array(
+            'exportAssets' => array(
+              'path' => 'v1beta1/{+parent}:exportAssets',
+              'httpMethod' => 'POST',
+              'parameters' => array(
+                'parent' => array(
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ),
+              ),
+            ),
+          )
+        )
+    );
+    $this->folders_operations = new Google_Service_CloudAsset_Resource_FoldersOperations(
+        $this,
+        $this->serviceName,
+        'operations',
+        array(
+          'methods' => array(
+            'get' => array(
+              'path' => 'v1beta1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => array(
+                'name' => array(
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ),
+              ),
+            ),
+          )
+        )
+    );
     $this->organizations = new Google_Service_CloudAsset_Resource_Organizations(
         $this,
         $this->serviceName,

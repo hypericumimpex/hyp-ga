@@ -23,7 +23,7 @@
  *
  * <p>
  * For more information about this service, see the API
- * <a href="https://cloud.google.com/compute/docs/oslogin/rest/" target="_blank">Documentation</a>
+ * <a href="https://cloud.google.com/compute/docs/oslogin/" target="_blank">Documentation</a>
  * </p>
  *
  * @author Google, Inc.
@@ -68,6 +68,14 @@ class Google_Service_CloudOSLogin extends Google_Service
                   'location' => 'path',
                   'type' => 'string',
                   'required' => true,
+                ),
+                'projectId' => array(
+                  'location' => 'query',
+                  'type' => 'string',
+                ),
+                'systemId' => array(
+                  'location' => 'query',
+                  'type' => 'string',
                 ),
               ),
             ),'importSshPublicKey' => array(

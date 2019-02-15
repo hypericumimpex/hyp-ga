@@ -19,7 +19,7 @@
  * Service definition for WebSecurityScanner (v1alpha).
  *
  * <p>
- * Web Security Scanner API (under development).</p>
+ * Scans your Compute and App Engine apps for common web vulnerabilities.</p>
  *
  * <p>
  * For more information about this service, see the API
@@ -198,13 +198,13 @@ class Google_Service_WebSecurityScanner extends Google_Service
                   'type' => 'string',
                   'required' => true,
                 ),
-                'pageSize' => array(
-                  'location' => 'query',
-                  'type' => 'integer',
-                ),
                 'pageToken' => array(
                   'location' => 'query',
                   'type' => 'string',
+                ),
+                'pageSize' => array(
+                  'location' => 'query',
+                  'type' => 'integer',
                 ),
               ),
             ),
