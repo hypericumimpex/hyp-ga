@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_3_0 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_3_1 as Framework;
 
 /**
  * The plugin integration class.
@@ -47,17 +47,17 @@ class WC_Google_Analytics_Pro_Integration extends Framework\SV_WC_Tracking_Integ
 	/** @var array cache for user tracking status **/
 	private $user_tracking_enabled = array();
 
-	/** @var \Google_Client instance **/
-	private $ga_client;
-
-	/** @var \Google_Service_Analytics instance **/
-	private $analytics;
-
 	/** @var string google analytics js tracker function name **/
 	private $ga_function_name;
 
 	/** @var array associative array of queued tracking JavaScript **/
 	private $queued_js = array();
+
+	/** @var \WC_Google_Analytics_Pro_Management_API handler */
+	private $management_api;
+
+	/** @var \WC_Google_Analytics_Pro_Measurement_Protocol_API handler */
+	private $measurement_protocol_api;
 
 
 	/**
@@ -513,7 +513,7 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 				}
 
 				// track the event via Measurement Protocol
-				$this->get_api()->track_event( $event_name, $identities, $properties, $ec );
+				$this->get_measurement_protocol_api()->track_event( $event_name, $identities, $properties, $ec );
 
 				$record = true;
 			}
@@ -981,27 +981,72 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 
 
 	/**
-	 * Gets the Measurement Protocol API wrapper.
+	 * Gets the Management API handler.
 	 *
-	 * @since 1.0.0
+	 * @since 1.7.0
+	 *
+	 * @return \SkyVerge\WooCommerce\Google_Analytics_Pro\API\Management_API
+	 */
+	public function get_management_api() {
+
+		if ( $this->management_api instanceof \SkyVerge\WooCommerce\Google_Analytics_Pro\API\Management_API ) {
+			return $this->management_api;
+		}
+
+		// account management API wrapper
+		require_once( $this->get_plugin()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-management-api.php' );
+		// account management API request
+		require_once( $this->get_plugin()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-management-api-request.php' );
+		// account management API responses
+		require_once( $this->get_plugin()->get_plugin_path() . '/includes/api/abstract-wc-google-analytics-pro-management-api-response.php' );
+		require_once( $this->get_plugin()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-management-api-account-summaries-response.php' );
+		require_once( $this->get_plugin()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-management-api-profiles-response.php' );
+
+		// the management API needs to be initialized with a token for authentication
+		$token = $this->parse_access_token( $this->get_access_token() );
+
+		// refresh token if it's expired
+		if ( $this->is_access_token_expired( $token ) ) {
+
+			try {
+
+				$token = $this->refresh_access_token();
+
+			} catch ( Framework\SV_WC_API_Exception $e ) {
+
+				if ( $this->debug_mode_on() ) {
+					$this->get_plugin()->log( $e->getMessage() );
+				}
+
+				$token = $this->parse_access_token();
+			}
+		}
+
+		return $this->management_api = new \SkyVerge\WooCommerce\Google_Analytics_Pro\API\Management_API( $token->access_token );
+	}
+
+
+	/**
+	 * Gets the Measurement Protocol API handler.
+	 *
+	 * @since 1.7.0
+	 *
 	 * @return \WC_Google_Analytics_Pro_Measurement_Protocol_API
 	 */
-	public function get_api() {
+	public function get_measurement_protocol_api() {
 
-		if ( is_object( $this->api ) ) {
-			return $this->api;
+		if ( $this->measurement_protocol_api instanceof \WC_Google_Analytics_Pro_Measurement_Protocol_API ) {
+			return $this->measurement_protocol_api;
 		}
 
 		// measurement protocol API wrapper
-		require_once( wc_google_analytics_pro()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-measurement-protocol-api.php' );
-
+		require_once( $this->get_plugin()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-measurement-protocol-api.php' );
 		// measurement protocol API request
-		require_once( wc_google_analytics_pro()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-measurement-protocol-api-request.php' );
-
+		require_once( $this->get_plugin()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-measurement-protocol-api-request.php' );
 		// measurement protocol API response
-		require_once( wc_google_analytics_pro()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-measurement-protocol-api-response.php' );
+		require_once( $this->get_plugin()->get_plugin_path() . '/includes/api/class-wc-google-analytics-pro-measurement-protocol-api-response.php' );
 
-		return $this->api = new WC_Google_Analytics_Pro_Measurement_Protocol_API( $this->get_tracking_id() );
+		return $this->measurement_protocol_api = new \WC_Google_Analytics_Pro_Measurement_Protocol_API( $this->get_tracking_id() );
 	}
 
 
@@ -1392,7 +1437,7 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 
 
 	/**
-	 * Gets the Google Client API authentication URL.
+	 * Gets the Google API authentication URL.
 	 *
 	 * @since 1.0.0
 	 * @return string the Google Client API authentication URL
@@ -1404,50 +1449,58 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 
 
 	/**
-	 * Gets the Google Client API refresh token.
+	 * Gets the Google API refresh token.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @return string|null
 	 */
 	private function get_refresh_token() {
 
-		return get_option( 'wc_google_analytics_pro_refresh_token' );
+		return get_option( 'wc_google_analytics_pro_refresh_token', null );
 	}
 
 
 	/**
-	 * Gets the Google Client API refresh access token URL, if a refresh token
-	 * is available.
+	 * Gets the Google API refresh access token URL, if a refresh token is available.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @return string|null
 	 */
 	public function get_access_token_refresh_url() {
 
-		if ( $refresh_token = $this->get_refresh_token() ) {
+		$refresh_url = null;
 
-			return self::PROXY_URL . '/auth/refresh?token=' . base64_encode( $refresh_token );
+		if ( $refresh_token = $this->get_refresh_token() ) {
+			$refresh_url = self::PROXY_URL . '/auth/refresh?token=' . base64_encode( $refresh_token );
 		}
+
+		return $refresh_url;
 	}
 
 
 	/**
-	 * Gets the Google Client API revoke access token URL, if a token is available.
+	 * Gets the Google API revoke access token URL, if a token is available.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @return string|null
 	 */
 	public function get_access_token_revoke_url() {
 
-		if ( $token = $this->get_access_token() ) {
+		$revoke_url = null;
 
-			return self::PROXY_URL . '/auth/revoke?token=' . base64_encode( $token );
+		if ( $token = $this->get_access_token() ) {
+			$revoke_url = self::PROXY_URL . '/auth/revoke?token=' . base64_encode( $token );
 		}
+
+		return $revoke_url;
 	}
 
 
 	/**
-	 * Gets the Google Client API callback URL.
+	 * Gets the Google API callback URL.
 	 *
 	 * @since 1.0.0
 	 * @return string url
@@ -2681,71 +2734,58 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 	 * Gets the current access token.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @return string|null
 	 */
 	public function get_access_token() {
 
-		return get_option( 'wc_google_analytics_pro_access_token' );
+		return get_option( 'wc_google_analytics_pro_access_token', null );
 	}
 
 
 	/**
-	 * Gets Google Client API instance.
+	 * Parses access token data for internal use.
 	 *
-	 * @since 1.0.0
+	 * @since 1.7.0
 	 *
-	 * @return \Google_Client
+	 * @param string $json_token raw token data
+	 * @return \stdClass
 	 */
-	public function get_ga_client() {
+	private function parse_access_token( $json_token = '' ) {
 
-		if ( ! isset( $this->ga_client ) ) {
+		$token = [
+			'access_token' => '',
+			'expires_in'   => 0,
+			'created'      => current_time( 'timestamp', true ),
+		];
 
-			if ( ! class_exists( 'Google_Client' ) ) {
-				require_once( $this->get_plugin()->get_plugin_path() . '/vendor/google/apiclient/src/Google/Client.php' );
-			}
-
-			$this->ga_client = new Google_Client();
-
-			try {
-
-				$this->ga_client->setAccessToken( $this->get_access_token() );
-
-			} catch ( \Exception $e ) {
-
-				$this->get_plugin()->log( $e->getMessage() );
-
-				return $this->ga_client;
-			}
+		if ( is_string( $json_token ) && '' !== $json_token ) {
+			$token = wp_parse_args( (array) json_decode( $json_token ), $token );
 		}
 
-		// refresh token if required
-		if ( $this->ga_client->isAccessTokenExpired() ) {
-			$this->refresh_access_token();
-		}
-
-		return $this->ga_client;
+		return (object) $token;
 	}
 
 
 	/**
-	 * Gets the Google Client API Analytics Service instance.
+	 * Determines whether the current access token is expired or not.
 	 *
-	 * @since 1.0.0
-	 * @return \Google_Service_Analytics
+	 * @since 1.7.0
+	 *
+	 * @param \stdClass $token access token object
+	 * @return bool
 	 */
-	public function get_analytics() {
+	private function is_access_token_expired( $token ) {
 
-		if ( null === $this->analytics ) {
+		$expired = ! ( is_object( $token ) && $token->created && $token->expires_in );
 
-			if ( ! class_exists( 'Google_Service_Analytics' ) ) {
-				require_once( $this->get_plugin()->get_plugin_path() . '/vendor/google/apiclient/src/Google/Service.php' );
-				require_once( $this->get_plugin()->get_plugin_path() . '/vendor/google/apiclient-services/src/Google/Service/Analytics.php' );
-			}
-
-			$this->analytics = new Google_Service_Analytics( $this->get_ga_client() );
+		if ( ! $expired ) {
+			$time_now     = current_time( 'timestamp', true );
+			$time_expires = max( 0, (int) $token->created + (int) $token->expires_in );
+			$expired      = $time_expires <= $time_now;
 		}
 
-		return $this->analytics;
+		return $expired;
 	}
 
 
@@ -2754,60 +2794,50 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string|void the refreshed JSON token or void on failure
+	 * @return \stdClass|null token object if successful
+	 * @throws Framework\SV_WC_API_Exception
 	 */
 	private function refresh_access_token() {
 
-		// bail out if no refresh token is available
 		if ( ! $this->get_refresh_token() ) {
-			wc_google_analytics_pro()->log( 'Could not refresh access token: refresh token not available' );
-			return;
+			throw new Framework\SV_WC_API_Exception( 'Could not refresh access token: refresh token not available.' );
 		}
 
-		$response = wp_remote_get( $this->get_access_token_refresh_url(), array( 'timeout' => MINUTE_IN_SECONDS ) );
+		$refresh_url = $this->get_access_token_refresh_url();
+		$response    = wp_remote_get( $refresh_url, array( 'timeout' => MINUTE_IN_SECONDS ) );
 
 		// bail out if the request failed
-		if ( is_wp_error( $response ) ) {
-			wc_google_analytics_pro()->log( sprintf( 'Could not refresh access token: %s', json_encode( $response->errors ) ) );
-			return;
+		if ( $response instanceof \WP_Error ) {
+			throw new Framework\SV_WC_API_Exception( sprintf( 'Could not refresh access token: %s', json_encode( $response->errors ) ) );
 		}
 
 		// bail out if the response was empty
-		if ( ! $response || ! $response['body'] ) {
-			wc_google_analytics_pro()->log( 'Could not refresh access token: response was empty' );
-			return;
+		if ( ! $response || empty( $response['body'] ) ) {
+			throw new Framework\SV_WC_API_Exception( 'Could not refresh access token: response was empty.' );
 		}
 
 		// bail out if the Google Analytics proxy produced a 500 server error
 		if ( isset( $response['response']['code'] ) && 500 === (int) $response['response']['code'] ) {
-			wc_google_analytics_pro()->log( 'Could not refresh access token: a server error occurred' );
-			return;
+			throw new Framework\SV_WC_API_Exception( 'Could not refresh access token: a server error occurred.' );
 		}
 
 		// try to decode the token
 		$json_token = base64_decode( $response['body'] );
-		$token      = json_decode( $json_token, true );
 
 		// bail out if the token was invalid
-		if ( ! $token ) {
-			wc_google_analytics_pro()->log( 'Could not refresh access token: returned token was invalid' );
-			return;
+		if ( ! json_decode( $json_token, true ) ) {
+			throw new Framework\SV_WC_API_Exception( 'Could not refresh access token: returned token was invalid.' );
 		}
 
-		// update access token
-		update_option( 'wc_google_analytics_pro_access_token', $json_token );
+		// we're good: update the access token
+		$updated = update_option( 'wc_google_analytics_pro_access_token', $json_token );
 
-		try {
-
-			$this->ga_client->setAccessToken( $json_token );
-
-		} catch ( \Exception $e ) {
-
-			$this->get_plugin()->log( $e->getMessage() );
-			return;
+		// there's a rare possibility we could not store the token
+		if ( ! $updated ) {
+			throw new Framework\SV_WC_API_Exception( 'Could not refresh access token: a database error occurred.' );
 		}
 
-		return $json_token;
+		return $this->parse_access_token( $json_token );
 	}
 
 
@@ -2884,106 +2914,120 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 
 
 	/**
-	 * Returns a list of Google Analytics properties
+	 * Gets a list of Google Analytics properties.
 	 *
 	 * @since 1.3.0
+	 *
 	 * @return array
 	 */
 	public function get_ga_properties() {
 
-		if ( ! wc_google_analytics_pro()->is_plugin_settings() ) {
-			return array();
-		}
+		$ga_properties = [];
 
-		// check if properties transient exists
-		if ( false === ( $ga_properties = get_transient( 'wc_google_analytics_pro_properties' ) ) ) {
+		// skip when not on the plugin settings page
+		if ( $this->get_plugin()->is_plugin_settings() ) {
 
-			$ga_properties = array();
-			$analytics   = $this->get_analytics();
+			$ga_properties = get_transient( 'wc_google_analytics_pro_properties' );
 
-			// try to fetch analytics accounts
-			try {
+			if ( ! is_array( $ga_properties ) ) {
 
-				// give ourselves an unlimited timeout if possible
-				@set_time_limit( 0 );
+				$account_api = $this->get_management_api();
 
-				// get the account summaries in one API call
-				$account_summaries = $analytics->management_accountSummaries->listManagementAccountSummaries();
+				// try to fetch analytics accounts
+				try {
 
-				// loop over the account summaries to get available web properties
-				foreach ( $account_summaries->getItems() as $account_summary ) {
+					// give ourselves an unlimited timeout if possible
+					@set_time_limit( 0 );
 
-					if ( ! $account_summary instanceof Google_Service_Analytics_AccountSummary ) {
-						continue;
-					}
+					// get the account summaries in one API call
+					$account_summaries = $account_api->get_account_summaries();
+					$list_summaries    = $account_summaries->list_account_summaries();
 
-					// loop over the properties to create property options
-					foreach ( $account_summary->getWebProperties() as $property ) {
+					// loop over the account summaries to get available web properties
+					foreach ( $list_summaries as $account_summary ) {
 
-						if ( ! $property instanceof Google_Service_Analytics_WebPropertySummary ) {
+						// sanity checks to ensure we have the right kind of data
+						if ( ! isset( $account_summary->kind, $account_summary->id, $account_summary->name, $account_summary->webProperties ) ) {
+							continue;
+						}
+						if ( 'analytics#accountSummary' !== $account_summary->kind ) {
 							continue;
 						}
 
-						$optgroup = $account_summary->getName();
+						// loop over the properties to create property options
+						foreach ( $account_summary->webProperties as $property ) {
 
-						if ( ! isset( $ga_properties[ $optgroup ] ) ) {
-							$ga_properties[ $optgroup ] = array();
+							// sanity checks to ensure we have the right kind of data
+							if ( ! isset( $property->kind, $property->id, $property->name ) ) {
+								continue;
+							}
+							if ( 'analytics#webPropertySummary' !== $property->kind ) {
+								continue;
+							}
+
+							$optgroup = $account_summary->name;
+
+							if ( ! isset( $ga_properties[ $optgroup ] ) ) {
+								$ga_properties[ $optgroup ] = [];
+							}
+
+							$ga_properties[ $optgroup ][ $account_summary->id . '|' . $property->id ] = sprintf( '%s (%s)', $property->name, $property->id );
+
+							// sort properties naturally
+							natcasesort( $ga_properties[ $optgroup ] );
 						}
-
-						$ga_properties[ $optgroup ][ $account_summary->getId() . '|' . $property->getId() ] = sprintf( '%s (%s)', $property->getName(), $property->getId() );
-
-						// sort properties naturally
-						natcasesort( $ga_properties[ $optgroup ] );
 					}
+
+				// if something goes wrong we should inform the user...
+				} catch ( Framework\SV_WC_API_Exception $e ) {
+
+					// log the error
+					$this->get_plugin()->log( $e->getMessage() );
+
+					// leave an additional admin notice
+					if ( is_admin() ) {
+
+						$error_code    = (int) $e->getCode();
+						$plugin_name   = '<strong>' . $this->get_plugin()->get_plugin_name() . '</strong> ';
+						$notice_id     = $this->get_plugin()->get_id() . '-account-' . get_option( 'wc_google_analytics_pro_account_id', '' ) . '-no-analytics-access';
+						$notice_params = [
+							'dismissible'             => true,
+							'always_show_on_settings' => false,
+							'notice_class'            => 'error'
+						];
+
+						// authentication error (normally 401)
+						if ( in_array( $error_code, [ 401, 403, 407 ], true ) ) {
+
+							$this->get_plugin()->get_admin_notice_handler()->add_admin_notice(
+								/* translators: Placeholder: %s - plugin name, in bold */
+								sprintf( esc_html__( '%s: The currently authenticated Google account does not have access to any Analytics accounts. Please re-authenticate with an account that has access to Google Analytics.', 'woocommerce-google-analytics-pro' ), $plugin_name ),
+								$notice_id,
+								$notice_params
+							);
+
+						// possibly a timeout, or other issue
+						} else {
+
+							$this->get_plugin()->get_admin_notice_handler()->add_admin_notice(
+								/* translators: Placeholder: %s - plugin name, in bold */
+								sprintf( esc_html__( '%s: Something went wrong with the request to list the Google Analytics properties for the currently authenticated Google account. Please try again in a few minutes or try re-authenticating with your Google account.', 'woocommerce-google-analytics-pro' ), $plugin_name ),
+								$notice_id,
+								$notice_params
+							);
+						}
+					}
+
+					// just in case ensure the array is empty in case of errors
+					$ga_properties = [];
 				}
+
+				// sort properties in the United Kingdom... just kidding, sort by keys, by comparing them naturally
+				uksort( $ga_properties, 'strnatcasecmp' );
+
+				// set a 5 minute transient
+				set_transient( 'wc_google_analytics_pro_properties', $ga_properties, 5 * MINUTE_IN_SECONDS );
 			}
-
-			// catch service exception
-			catch ( Google_Service_Exception $e ) {
-
-				wc_google_analytics_pro()->log( $e->getMessage() );
-
-				if ( is_admin() ) {
-					wc_google_analytics_pro()->get_admin_notice_handler()->add_admin_notice(
-						'<strong>' . wc_google_analytics_pro()->get_plugin_name() . ':</strong> ' .
-						sprintf(
-							/* translators: Placeholders: %1$s - <a> tag, %2$s - </a> tag */
-							__( 'The request to list the Google Analytics properties for the currently authenticated Google account has timed out. Please try again in a few minutes or try re-authenticating with your Google account.', 'woocommerce-google-analytics-pro' ),
-							'<a href="https://console.developers.google.com/" target="_blank">',
-							'</a>'
- 						),
-						wc_google_analytics_pro()->get_id() . '-account-' . get_option( 'wc_google_analytics_pro_account_id' ) . '-no-analytics-access',
-						array( 'dismissible' => true, 'always_show_on_settings' => false, 'notice_class' => 'error' )
-					);
-				}
-
-				// return a blank array so select box is valid
-				return array();
-			}
-
-			// catch general google exception
-			catch ( Google_Exception $e ) {
-
-				wc_google_analytics_pro()->log( $e->getMessage() );
-
-				if ( is_admin() ) {
-					wc_google_analytics_pro()->get_admin_notice_handler()->add_admin_notice(
-						'<strong>' . wc_google_analytics_pro()->get_plugin_name() . ':</strong> ' .
-						__( 'The currently authenticated Google account does not have access to any Analytics accounts. Please re-authenticate with an account that has access to Google Analytics.', 'woocommerce-google-analytics-pro' ),
-						wc_google_analytics_pro()->get_id() . '-account-' . get_option( 'wc_google_analytics_pro_account_id' ) . '-no-analytics-access',
-						array( 'dismissible' => true, 'always_show_on_settings' => false, 'notice_class' => 'error' )
-					);
-				}
-
-				// return a blank array so select box is valid
-				return array();
-			}
-
-			// sort properties in the United Kingdom... just kidding, sort by keys, by comparing them naturally
-			uksort( $ga_properties, 'strnatcasecmp' );
-
-			// set 5 minute transient
-			set_transient( 'wc_google_analytics_pro_properties', $ga_properties, 5 * MINUTE_IN_SECONDS );
 		}
 
 		return $ga_properties;
@@ -3087,6 +3131,53 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 		}
 
 		return $pieces[ $key ];
+	}
+
+
+	/**
+	 * Gets the Google Client API Analytics Service instance.
+	 *
+	 * @since 1.0.0
+	 * @deprecated since 1.7.0
+	 * @see \WC_Google_Analytics_Pro_Account_Management_API
+	 * @see \WC_Google_Analytics_Pro_Integration::get_management_api()
+	 *
+	 * @return null
+	 */
+	public function get_analytics() {
+		_deprecated_function( 'WC_Google_Analytics_Pro_Integration::get_analytics()', '1.7.0' );
+		return null;
+	}
+
+
+	/**
+	 * Gets Google Client API instance.
+	 *
+	 * @since 1.0.0
+	 * @deprecated since 1.7.0
+	 * @see \WC_Google_Analytics_Pro_Account_Management_API
+	 * @see \WC_Google_Analytics_Pro_Integration::get_management_api()
+	 *
+	 * @return null
+	 */
+	public function get_ga_client() {
+		_deprecated_function( 'WC_Google_Analytics_Pro_Integration::get_ga_client()', '1.7.0' );
+		return null;
+	}
+
+
+	/**
+	 * Gets the Measurement Protocol API wrapper.
+	 *
+	 * @since 1.0.0
+	 * @deprecated since 1.7.0
+	 * @see \WC_Google_Analytics_Pro_Integration::get_measurement_protocol_api()
+	 *
+	 * @return \WC_Google_Analytics_Pro_Measurement_Protocol_API
+	 */
+	public function get_api() {
+		_deprecated_function( 'WC_Google_Analytics_Pro_Integration::get_api()', '1.7.0', 'WC_Google_Analytics_Pro_Integration::get_measurement_protocol_api()' );
+		return $this->get_measurement_protocol_api();
 	}
 
 

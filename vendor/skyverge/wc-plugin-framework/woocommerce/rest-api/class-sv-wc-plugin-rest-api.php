@@ -18,15 +18,15 @@
  *
  * @package   SkyVerge/WooCommerce/Plugin/Classes
  * @author    SkyVerge
- * @copyright Copyright (c) 2013-2018, SkyVerge, Inc.
+ * @copyright Copyright (c) 2013-2019, SkyVerge, Inc.
  * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-namespace SkyVerge\WooCommerce\PluginFramework\v5_3_0;
+namespace SkyVerge\WooCommerce\PluginFramework\v5_3_1;
 
 defined( 'ABSPATH' ) or exit;
 
-if ( ! class_exists( '\\SkyVerge\\WooCommerce\\PluginFramework\\v5_3_0\\REST_API' ) ) :
+if ( ! class_exists( '\\SkyVerge\\WooCommerce\\PluginFramework\\v5_3_1\\REST_API' ) ) :
 
 
 /**
@@ -142,7 +142,7 @@ class REST_API {
 	 *
 	 * @since 5.2.0
 	 *
-	 * @return SV_WC_Plugin
+	 * @return SV_WC_Plugin|SV_WC_Payment_Gateway_Plugin
 	 */
 	protected function get_plugin() {
 
