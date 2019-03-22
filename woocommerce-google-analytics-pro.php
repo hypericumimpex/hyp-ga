@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HYP GA
  * Plugin URI: https://github.com/hypericumimpex/hyp-ga/
- * Description: Hypericum Google Analytics tracking with enhanced eCommerce tracking and custom event tracking
+ * Description: Hypericum Google Analytics tracking with enhanced eCommerce tracking and custom event tracking.
  * Author: Romeo C.
  * Author URI: https://github.com/hypericumimpex/
  * Version: 1.6.6
