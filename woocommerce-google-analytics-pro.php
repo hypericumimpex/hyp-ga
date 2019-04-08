@@ -5,7 +5,7 @@
  * Description: Hypericum Google Analytics tracking with enhanced eCommerce tracking and custom event tracking.
  * Author: Romeo C.
  * Author URI: https://github.com/hypericumimpex/
- * Version: 1.7.0
+ * Version: 1.7.1
  * Text Domain: woocommerce-google-analytics-pro
  * Domain Path: /i18n/languages/
  *
@@ -21,7 +21,7 @@
  *
  * Woo: 1312497:d8aed8b7306b509eec1589e59abe319f
  * WC requires at least: 2.6.14
- * WC tested up to: 3.5.7
+ * WC tested up to: 3.6.0
  */
 
 defined( 'ABSPATH' ) or exit;
@@ -58,13 +58,13 @@ class WC_Google_Analytics_Pro_Loader {
 	const MINIMUM_WC_VERSION = '2.6';
 
 	/** SkyVerge plugin framework version used by this plugin */
-	const FRAMEWORK_VERSION = '5.3.0';
+	const FRAMEWORK_VERSION = '5.4.0';
 
 	/** the plugin name, for displaying notices */
 	const PLUGIN_NAME = 'WooCommerce Google Analytics Pro';
 
 
-	/** @var SV_WC_Plugin_Loader single instance of this class */
+	/** @var \WC_Google_Analytics_Pro_Loader single instance of this class */
 	protected static $instance;
 
 	/** @var array the admin notices to add */

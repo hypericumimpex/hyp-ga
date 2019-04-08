@@ -25,7 +25,7 @@ namespace SkyVerge\WooCommerce\Google_Analytics_Pro\API\Management_API;
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_3_1 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_4_0 as Framework;
 
 /**
  * Handles requests to the Google Analytics Management API.

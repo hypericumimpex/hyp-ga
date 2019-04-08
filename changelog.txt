@@ -1,5 +1,8 @@
 *** WooCommerce Google Analytics Pro ***
 
+2019.04.03 - version 1.7.1
+ * Misc - Add support for WooCommerce 3.6
+
 2019.03.20 - version 1.7.0
  * Fix - Ensure custom translation files are correctly loaded when the plugin initializes
  * Misc - Replace the Google API client library with a lightweight internal API handler

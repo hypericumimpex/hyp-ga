@@ -1,28 +1,28 @@
 [
     {
         "name": "skyverge/wc-plugin-framework",
-        "version": "5.3.1",
-        "version_normalized": "5.3.1.0",
+        "version": "5.4.0",
+        "version_normalized": "5.4.0.0",
         "source": {
             "type": "git",
             "url": "https://github.com/skyverge/wc-plugin-framework.git",
-            "reference": "57deeba67f71e50cd5d8a4ec639a115467feb0b3"
+            "reference": "0e9f013e9841e5d231e3e5b817d2be30688e77e5"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/skyverge/wc-plugin-framework/zipball/57deeba67f71e50cd5d8a4ec639a115467feb0b3",
-            "reference": "57deeba67f71e50cd5d8a4ec639a115467feb0b3",
+            "url": "https://api.github.com/repos/skyverge/wc-plugin-framework/zipball/0e9f013e9841e5d231e3e5b817d2be30688e77e5",
+            "reference": "0e9f013e9841e5d231e3e5b817d2be30688e77e5",
             "shasum": ""
         },
         "require-dev": {
             "lucatume/wp-browser": "^2.1"
         },
-        "time": "2019-01-09T18:37:59+00:00",
+        "time": "2019-03-13T16:34:44+00:00",
         "type": "library",
         "installation-source": "source",
         "description": "The official SkyVerge WooCommerce plugin framework",
         "support": {
-            "source": "https://github.com/skyverge/wc-plugin-framework/tree/5.3.1",
+            "source": "https://github.com/skyverge/wc-plugin-framework/tree/5.4.0",
             "issues": "https://github.com/skyverge/wc-plugin-framework/issues"
         }
     }

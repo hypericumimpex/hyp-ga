@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_3_1 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_4_0 as Framework;
 
 /**
  * # WooCommerce Google Analytics Pro Main Plugin Class.
@@ -34,7 +34,7 @@ class WC_Google_Analytics_Pro extends Framework\SV_WC_Plugin {
 
 
 	/** plugin version number */
-	const VERSION = '1.7.0';
+	const VERSION = '1.7.1';
 
 	/** @var \WC_Google_Analytics_Pro the singleton instance of the plugin */
 	protected static $instance;
@@ -613,7 +613,7 @@ class WC_Google_Analytics_Pro extends Framework\SV_WC_Plugin {
 
 							if ( 1 === count( $currency_mismatch ) ) {
 								$message = sprintf(
-								/* translators: Placeholders: %1$s - plugin name, %2$s and %3$s - currency code, e.g. USD, %4$s - <a> tag, %5$s - </a> tag */
+									/* translators: Placeholders: %1$s - plugin name, %2$s and %3$s - currency code, e.g. USD, %4$s - <a> tag, %5$s - </a> tag */
 									__( '%1$s: Your Google Analytics View currency (%2$s) does not match WooCommerce currency (%3$s). You can change it %4$son your Google Analytics View%5$s.', 'woocommerce-google-analytics-pro' ),
 									$plugin_name,
 									$currency_mismatch[0]['currency'],
@@ -624,6 +624,7 @@ class WC_Google_Analytics_Pro extends Framework\SV_WC_Plugin {
 								$message = sprintf(
 									/* translators: Placeholders: %1$s - plugin name, %2$s - currency code, %3$s - a list of links */
 									__( '%1$s: Your Google Analytics Views currencies does not match WooCommerce currency (%2$s). You can change it on the following Google Analytics Views: %3$s', 'woocommerce-google-analytics-pro' ),
+									$plugin_name,
 									get_woocommerce_currency(),
 									'<ul><li>' . implode( '</li><li>', wp_list_pluck( $currency_mismatch, 'link' ) ) . '</li></ul>'
 								);

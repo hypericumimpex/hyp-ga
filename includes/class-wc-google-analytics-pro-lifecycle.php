@@ -25,7 +25,7 @@ namespace SkyVerge\WooCommerce\Google_Analytics_Pro;
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_3_1 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_4_0 as Framework;
 
 /**
  * Plugin lifecycle handler.
@@ -38,42 +38,31 @@ class Lifecycle extends Framework\Plugin\Lifecycle {
 
 
 	/**
-	 * Performs any version-related changes.
+	 * Lifecycle constructor.
 	 *
-	 * @since 1.6.0
+	 * @since 1.7.1
 	 *
-	 * @param int $installed_version the currently installed version of the plugin
+	 * @param \WC_Google_Analytics_Pro $plugin
 	 */
-	protected function upgrade( $installed_version ) {
+	public function __construct( $plugin ) {
 
-		if ( ! empty( $installed_version ) ) {
+		parent::__construct( $plugin );
 
-			$update_path = array(
-				'1.3.0' => 'update_to_1_3_0',
-				'1.5.2' => 'update_to_1_5_2',
-			);
-
-			foreach ( $update_path as $update_to_version => $update_script ) {
-
-				if ( version_compare( $installed_version, $update_to_version, '<' ) ) {
-
-					$this->$update_script();
-
-					$this->get_plugin()->log( sprintf( 'Updated to to %s', $update_to_version ) );
-				}
-			}
-		}
+		$this->upgrade_versions = [
+			'1.3.0',
+			'1.5.2',
+		];
 	}
 
 
 	/**
-	 * Update to 1.3.0
+	 * Updates to 1.3.0
 	 *
-	 * @since 1.6.0
+	 * @since 1.7.1
 	 */
-	private function update_to_1_3_0() {
+	protected function upgrade_to_1_3_0() {
 
-		$settings = get_option( 'woocommerce_google_analytics_pro_settings', array() );
+		$settings = get_option( 'woocommerce_google_analytics_pro_settings', [] );
 
 		// pre 1.3.0 `__gaTracker` was the default function name - store an option & setting for it, so we don't break compatibility
 		add_option( 'woocommerce_google_analytics_upgraded_from_gatracker', true );
@@ -91,11 +80,11 @@ class Lifecycle extends Framework\Plugin\Lifecycle {
 		}
 
 		// install default event names for new events
-		$new_events = array(
+		$new_events = [
 			'provided_billing_email',
 			'selected_payment_method',
 			'placed_order',
-		);
+		];
 
 		$form_fields = $this->get_plugin()->get_integration()->get_form_fields();
 
@@ -114,16 +103,16 @@ class Lifecycle extends Framework\Plugin\Lifecycle {
 
 
 	/**
-	 * Update to version 1.5.2
+	 * Updates to version 1.5.2
 	 *
-	 * @since 1.6.0
+	 * @since 1.7.1
 	 */
-	private function update_to_1_5_2() {
+	protected function upgrade_to_1_5_2() {
 
 		// in v1.5.0 some Subscriptions events were introduced but their default values were not saved in settings
-		$saved_settings       = get_option( 'woocommerce_google_analytics_pro_settings', array() );
+		$saved_settings       = get_option( 'woocommerce_google_analytics_pro_settings', [] );
 		$modified_settings    = false;
-		$subscriptions_events = array(
+		$subscriptions_events = [
 			'activated_subscription'           => 'activated subscription',
 			'subscription_trial_ended'         => 'subscription trial ended',
 			'subscription_end_of_prepaid_term' => 'subscription prepaid term ended',
@@ -132,7 +121,7 @@ class Lifecycle extends Framework\Plugin\Lifecycle {
 			'reactivated_subscription'         => 'reactivated subscription',
 			'cancelled_subscription'           => 'cancelled subscription',
 			'renewed_subscription'             => 'subscription billed',
-		);
+		];
 
 		foreach ( $subscriptions_events as $setting => $default_value ) {
 
