@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_4_0 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_4_1 as Framework;
 
 /**
  * The Measurement Protocol API wrapper class.
@@ -60,13 +60,16 @@ class WC_Google_Analytics_Pro_Measurement_Protocol_API extends Framework\SV_WC_A
 	/**
 	 * Tracks an event via the Measurement Protocol.
 	 *
+	 * @see \WC_Google_Analytics_Pro_Measurement_Protocol_API_Request::identify()
+	 *
 	 * @since 1.0.0
+	 *
 	 * @param string $event_name the event name, used from settings page
-	 * @param string[] $identities see WC_Google_Analytics_Pro_Measurement_Protocol_API_Request::identify()
+	 * @param string[] $identities identity params
 	 * @param string[] $properties (optional) event properties, such as `eventCategory` and `eventAction`
-	 * @param string[] $ec (optional) enhanced ecommerce action and any associated args to be sent with the event
+	 * @param array $ec (optional) enhanced ecommerce action and any associated args to be sent with the event
 	 */
-	public function track_event( $event_name, $identities, $properties = array(), $ec = array() ) {
+	public function track_event( $event_name, $identities, $properties = [], $ec = [] ) {
 
 		try {
 
@@ -93,17 +96,21 @@ class WC_Google_Analytics_Pro_Measurement_Protocol_API extends Framework\SV_WC_A
 				switch ( $action ) {
 
 					case 'checkout':
+
 						$step   = ! empty( $args['step'] )   ? $args['step']   : '';
 						$option = ! empty( $args['option'] ) ? $args['option'] : '';
 
 						$request->track_ec_checkout( $order, $step, $option );
+
 					break;
 
 					case 'checkout_option':
+
 						$step   = ! empty( $args['step'] )   ? $args['step']   : '';
 						$option = ! empty( $args['option'] ) ? $args['option'] : '';
 
 						$request->track_ec_checkout_option( $step, $option );
+
 					break;
 
 					case 'purchase':
@@ -111,19 +118,28 @@ class WC_Google_Analytics_Pro_Measurement_Protocol_API extends Framework\SV_WC_A
 					break;
 
 					case 'refund':
+
 						$refunded_items = ! empty( $args['refunded_items'] ) ? $args['refunded_items'] : null;
 
 						$request->track_ec_refund( $order, $refunded_items );
+
 					break;
 
 					case 'add_to_cart':
+
+						$item_key = ! empty( $args['cart_item_key'] ) ? $args['cart_item_key'] : '';
 						$quantity = ! empty( $args['quantity'] ) ? $args['quantity'] : 1;
 
-						$request->track_ec_add_to_cart( $product, $quantity );
+						$request->track_ec_add_to_cart( $product, $quantity, $item_key );
+
 					break;
 
 					case 'remove_from_cart':
-						$request->track_ec_remove_from_cart( $product );
+
+						$cart_item = ! empty( $args['cart_item'] ) ? $args['cart_item'] : [];
+
+						$request->track_ec_remove_from_cart( $product, $cart_item );
+
 					break;
 				}
 			}

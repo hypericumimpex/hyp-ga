@@ -1,5 +1,24 @@
 *** WooCommerce Google Analytics Pro ***
 
+2019.10.15 - version 1.8.4
+ * Fix - Prevent orders placed before installing Google Analytics Pro from being tracked as completed
+
+2019.09.24 - version 1.8.3
+ * Fix - Prevent deprecation notice with WooCommerce Subscriptions 2.6+
+
+2019.09.18 - version 1.8.2
+ * Fix - Address a conflict with plugins defining custom WooCommerce emails
+
+2019.08.29 - version 1.8.1
+ * Tweak - Add tracking image to email additional content, instead of after the html closing tag
+
+2019.08.12 - version 1.8.0
+ * Tweak - Send the user ID rather than the user login for signed in events
+ * Fix - Make sure the signed out event is shown under the My Account category rather than the general category
+ * Fix - Address a PHP warning that may be thrown in some circumstances when MonsterInsights is active
+ * Misc - Add support for WooCommerce 3.7
+ * Misc - Remove support for WooCommerce 2.6
+
 2019.04.03 - version 1.7.1
  * Misc - Add support for WooCommerce 3.6
 

@@ -1,5 +1,8 @@
 *** SkyVerge WooCommerce Plugin Framework Changelog ***
 
+2019.08.06 - version 5.4.1
+ * Misc - Add a configurable admin notice for plugins running deprecated WooCommerce versions
+
 2019.03.13 - version 5.4.0
  * Feature - Add abstract handlers for hosted payment processing
  * Feature - Revamp the Lifecycle handler for easier upgrade routines and add event logging for important lifecycle events

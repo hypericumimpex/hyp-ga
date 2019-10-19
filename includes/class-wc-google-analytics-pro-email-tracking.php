@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_4_0 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_4_1 as Framework;
 
 /**
  * The email tracking class.
@@ -44,7 +44,11 @@ class WC_Google_Analytics_Pro_Email_Tracking {
 	 */
 	public function __construct() {
 
-		add_action( 'woocommerce_after_template_part', array( $this, 'track_opens' ), 10, 4 );
+		foreach ( $this->get_emails() as $tracked_email ) {
+
+			// add filters for additional content for all tracked emails
+			add_filter( 'woocommerce_email_additional_content_' . $tracked_email->id, [ $this, 'track_opens' ], 10, 2 );
+		}
 	}
 
 
@@ -58,9 +62,10 @@ class WC_Google_Analytics_Pro_Email_Tracking {
 
 		if ( ! isset( $this->emails ) ) {
 
-			$wc_emails    = \WC_Emails::instance();
-			$all_emails   = $wc_emails->get_emails();
-			$track_emails = array();
+			$mailer     = WC()->mailer();
+			$all_emails = $mailer->get_emails();
+
+			$track_emails = [];
 
 			// only track customer emails
 			if ( ! empty( $all_emails ) ) {
@@ -90,19 +95,20 @@ class WC_Google_Analytics_Pro_Email_Tracking {
 
 
 	/**
-	 * Gets an email based on an HTML template path.
+	 * Gets an email based on its ID.
 	 *
-	 * @since 1.0.0
-	 * @param string $template_path the template path
+	 * @since 1.8.1
+	 *
+	 * @param string $email_id the email ID
 	 * @return \WC_Email|null
 	 */
-	private function get_email_by_template_html_path( $template_path ) {
+	private function get_email_by_id( $email_id ) {
 
 		$found_email = null;
 
 		foreach ( $this->get_emails() as $email ) {
 
-			if ( $template_path === $email->template_html ) {
+			if ( $email_id === $email->id ) {
 
 				$found_email = $email;
 				break;
@@ -122,12 +128,13 @@ class WC_Google_Analytics_Pro_Email_Tracking {
 	 * @internal
 	 *
 	 * @since 1.0.0
-	 * @param string $template_name the template name
-	 * @param string $template_path the template path
-	 * @param bool $located whether the template was located
-	 * @param array $args the template args, defaults to an empty array
+	 *
+	 * @param string $content content to show below main email content
+	 * @param mixed $object object this email is for, for example an order or customer
+	 *
+	 * @return string|void
 	 */
-	public function track_opens( $template_name, $template_path, $located, $args = array() ) {
+	public function track_opens( $content, $object ) {
 
 		// get the integration class instance
 		$integration = wc_google_analytics_pro()->get_integration();
@@ -139,32 +146,37 @@ class WC_Google_Analytics_Pro_Email_Tracking {
 			return;
 		}
 
-		// skip if not an email template or is plain email template
-		if ( strpos( $template_name, 'emails/' ) === false || strpos( $template_name, 'emails/plain/' ) !== false ) {
-			return;
-		}
-
-		$email = $this->get_email_by_template_html_path( $template_name );
+		$email_id = str_replace( 'woocommerce_email_additional_content_', '', current_filter() );
+		$email    = $this->get_email_by_id( $email_id );
 
 		// skip if we're not tracking this email
 		if ( ! $email ) {
 			return;
 		}
 
+		// skip if plain email
+		$email_type = ! empty( $email->settings['email_type'] ) ? $email->settings['email_type'] : null;
+		if ( 'html' !== $email_type ) {
+			return;
+		}
+
 		$cid = $uid = null;
 
-		if ( isset( $args['order'] ) ) {
+		if ( $object instanceof \WC_Order ) {
+
+			$order = $object;
 
 			// try to get client & user ID from order
-			$cid = get_post_meta( Framework\SV_WC_Order_Compatibility::get_prop( $args['order'], 'id' ), '_wc_google_analytics_pro_identity', true );
-			$uid = Framework\SV_WC_Order_Compatibility::get_prop( $args['order'], 'customer_id' );
+			$cid = get_post_meta( $order->get_id(), '_wc_google_analytics_pro_identity', true );
+			$uid = $order->get_customer_id();
 
-		} elseif ( isset( $args['user_login'] ) ) {
+		} elseif ( $object instanceof \WP_User ) {
+
+			$user = $object;
 
 			// try to get client & user ID from user data
-			$user = get_user_by( 'login', $args['user_login'] );
-			$uid  = $user->ID;
-			$cid  = get_user_meta( $user->ID, '_wc_google_analytics_pro_identity', true );
+			$uid = $user->ID;
+			$cid = get_user_meta( $user->ID, '_wc_google_analytics_pro_identity', true );
 		}
 
 		// fall back to generating UUID
@@ -194,7 +206,7 @@ class WC_Google_Analytics_Pro_Email_Tracking {
 		}
 
 		$url   = 'https://www.google-analytics.com/collect?';
-		$query = urldecode( http_build_query( array(
+		$query = urldecode( http_build_query( [
 			'v'   => 1,
 			'tid' => $tracking_id,                                              // Tracking ID. Required
 			'cid' => $cid,                                                      // Client (anonymous) ID. Required
@@ -205,9 +217,11 @@ class WC_Google_Analytics_Pro_Email_Tracking {
 			'el'  => urlencode( $email->title ),                                // Event Label - email title
 			'dp'  => urlencode( '/emails/' . sanitize_title( $email->title ) ), // Document Path. Unique for each email
 			'dt'  => urlencode( $email->title ),                                // Document Title - email title
-		), '', '&' ) );
+		], '', '&' ) );
 
-		printf( '<img src="%s" alt="" />', $url . $query );
+		$tracking_image = sprintf( '<img src="%s" alt="" />', $url . $query );
+
+		return $content . $tracking_image;
 	}
 
 

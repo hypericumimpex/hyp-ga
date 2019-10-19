@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_4_0 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_4_1 as Framework;
 
 /**
  * The plugin integration class.
@@ -102,8 +102,8 @@ class WC_Google_Analytics_Pro_Integration extends Framework\SV_WC_Tracking_Integ
 			}
 		}
 
-		// track emails
-		$this->email_tracking = wc_google_analytics_pro()->load_class( '/includes/class-wc-google-analytics-pro-email-tracking.php', 'WC_Google_Analytics_Pro_Email_Tracking' );
+		// load email tracking class
+		add_action( 'init', array( $this, 'load_email_tracking' ) );
 
 		// handle Google Client API callbacks
 		add_action( 'woocommerce_api_wc-google-analytics-pro/auth', array( $this, 'authenticate' ) );
@@ -112,6 +112,18 @@ class WC_Google_Analytics_Pro_Integration extends Framework\SV_WC_Tracking_Integ
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_styles_scripts' ) );
 
 		add_filter( 'woocommerce_settings_api_sanitized_fields_google_analytics_pro', array( $this, 'filter_admin_options' ) );
+	}
+
+
+	/**
+	 * Loads the email tracking class.
+	 *
+	 * Note: Loading this class on `init` is required to support custom emails defined by external extensions/code
+	 *
+	 * @since 1.8.2
+	 */
+	public function load_email_tracking() {
+		$this->email_tracking = wc_google_analytics_pro()->load_class( '/includes/class-wc-google-analytics-pro-email-tracking.php', 'WC_Google_Analytics_Pro_Email_Tracking' );
 	}
 
 
@@ -509,7 +521,7 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 				}
 
 				if ( empty( $identities['ua'] ) ) {
-					$identities['ua'] = Framework\SV_WC_Plugin_Compatibility::is_wc_version_gte_3_0() ? wc_get_user_agent() : ( isset( $_SERVER['HTTP_USER_AGENT'] ) ? strtolower( $_SERVER['HTTP_USER_AGENT'] ) : '' );
+					$identities['ua'] = wc_get_user_agent();
 				}
 
 				// track the event via Measurement Protocol
@@ -825,20 +837,21 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 
 
 	/**
+	 * Sets MonsterInsights tracking data.
+	 *
 	 * Invoked by a filter at the end of MonsterInsights' tracking.
-	 *
 	 * If we came here then MonsterInsights is going to print the GA init script.
-	 *
 	 * In 1.3.0 renamed from `yoast_ga_push_array_universal` to `set_monsterinsights_tracking_data`
 	 *
 	 * @internal
 	 *
 	 * @see Yoast_GA_Universal::tracking
-	 * @see MonsterInsights_Tracking_Analytics::frontend_tracking_options
+	 * @see MonsterInsights_Tracking_Analytics::frontend_tracking_options()
 	 *
 	 * @since 1.0.0
-	 * @param mixed $data the tracking data
-	 * @return mixed
+	 *
+	 * @param array $data the tracking data
+	 * @return array
 	 */
 	public function set_monsterinsights_tracking_data( $data ) {
 
@@ -847,16 +860,12 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 		// require Enhanced Ecommerce
 		$data[] = "'require','ec'";
 
-		// remove the pageview tracking, as we need to track it
-		// in the footer instead (because of product impressions)
-		if ( ! empty( $data ) ) {
+		// remove pageview tracking, as we need to track it in the footer instead (because of product impressions)
+		foreach ( $data as $key => $value ) {
 
-			foreach ( $data as $key => $value ) {
-
-				// check strpos rather than strict equal to account for search archives and 404 pages
-				if ( strpos( $value, "'send','pageview'" ) !== false ) {
-					unset( $data[ $key ] );
-				}
+			// check strpos() rather than strict equal to account for search archives and 404 pages
+			if ( is_string( $value ) && false !== strpos( $value, "'send','pageview'" ) ) {
+				unset( $data[ $key ] );
 			}
 		}
 
@@ -1562,6 +1571,7 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 	 * Tracks the log-in event.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @param string $user_login the signed-in username
 	 * @param \WP_User $user the logged-in user object
 	 */
@@ -1571,24 +1581,26 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 		 * Filters the user roles track on the signed in event.
 		 *
 		 * @since 1.0.0
+		 *
 		 * @param string[] array of user roles to track the event for
 		 */
-		if ( isset( $user->roles[0] ) && in_array( $user->roles[0], apply_filters( 'wc_google_analytics_pro_signed_in_user_roles', array( 'subscriber', 'customer' ) ), true ) ) {
+		if ( isset( $user->roles[0] ) && in_array( $user->roles[0], (array) apply_filters( 'wc_google_analytics_pro_signed_in_user_roles', [ 'subscriber', 'customer' ] ), true ) ) {
 
-			$properties = array(
+			// note: we send the user ID and not their login (email) to comply with Google policy for not sending personally identifiable information
+			$properties = [
 				'eventCategory' => 'My Account',
-				'eventLabel'    => $user_login,
-			);
+				'eventLabel'    => $user->ID,
+			];
 
 			$ec      = null;
 			$post_id = url_to_postid( wp_unslash( $_SERVER['REQUEST_URI'] ) );
 
 			// logged in at checkout
 			if ( $post_id && $post_id === (int) get_option( 'woocommerce_checkout_page_id' ) ) {
-				$ec = array( 'checkout_option' => array(
+				$ec = [ 'checkout_option' => [
 					'step'   => 1,
 					'option' => __( 'Registered User', 'woocommerce-google-analytics-pro' ) // can't check is_user_logged_in() as it still returns false here
-				));
+				] ];
 			}
 
 			$this->api_record_event( $this->event_name['signed_in'], $properties, $ec );
@@ -1607,13 +1619,15 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 
 
 	/**
-	 * Tracks a sign-out
+	 * Tracks a sign-out event.
 	 *
 	 * @since 1.0.0
 	 */
 	public function signed_out() {
 
-		$this->api_record_event( $this->event_name['signed_out'] );
+		$this->api_record_event( $this->event_name['signed_out'], [
+			'eventCategory' => 'My Account',
+		] );
 	}
 
 
@@ -1730,13 +1744,16 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 	/**
 	 * Tracks the (non-ajax) add-to-cart event.
 	 *
+	 * @internal
+	 *
 	 * @since 1.0.0
-	 * @param string $cart_item_key  the unique cart item ID
-	 * @param int    $product_id     the product ID
-	 * @param int    $quantity       the quantity added to the cart
-	 * @param int    $variation_id   the variation ID
-	 * @param array  $variation      the variation data
-	 * @param array  $cart_item_data the cart item data
+	 *
+	 * @param string $cart_item_key the unique cart item ID
+	 * @param int $product_id the product ID
+	 * @param int $quantity the quantity added to the cart
+	 * @param int $variation_id the variation ID
+	 * @param array $variation the variation data
+	 * @param array $cart_item_data the cart item data
 	 */
 	public function added_to_cart( $cart_item_key, $product_id, $quantity, $variation_id, $variation, $cart_item_data ) {
 
@@ -1745,26 +1762,33 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 			return;
 		}
 
-		$product = $variation_id ? wc_get_product( $variation_id ) : wc_get_product( $product_id );
-
-		$properties = array(
+		$product    = $variation_id ? wc_get_product( $variation_id ) : wc_get_product( $product_id );
+		$properties = [
 			'eventCategory' => 'Products',
 			'eventLabel'    => htmlentities( $product->get_title(), ENT_QUOTES, 'UTF-8' ),
 			'eventValue'    => (int) $quantity,
-		);
+		];
 
 		if ( ! empty( $variation ) ) {
 
-			// added a variable product to cart, set attributes as properties
-			// remove 'pa_' from keys to keep property names consistent
-			$variation = array_flip( str_replace( 'attribute_', '', array_flip( $variation ) ) );
-
+			// added a variable product to cart:
+			// - set attributes as properties
+			// - remove 'pa_' from keys to keep property names consistent
+			$variation  = array_flip( str_replace( 'attribute_', '', array_flip( $variation ) ) );
 			$properties = array_merge( $properties, $variation );
 		}
 
-		$ec = array( 'add_to_cart' => array( 'product' => $product, 'quantity' => $quantity ) );
-
-		$this->api_record_event( $this->event_name['added_to_cart'], $properties, $ec );
+		$this->api_record_event(
+			$this->event_name['added_to_cart'],
+			$properties,
+			[
+				'add_to_cart' => [
+					'product'       => $product,
+					'quantity'      => $quantity,
+					'cart_item_key' => $cart_item_key,
+				],
+			]
+		);
 	}
 
 
@@ -1778,15 +1802,24 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 
 		$product = wc_get_product( $product_id );
 
-		$properties = array(
-			'eventCategory' => 'Products',
-			'eventLabel'    => htmlentities( $product->get_title(), ENT_QUOTES, 'UTF-8' ),
-			'eventValue'    => 1,
+		if ( ! $product ) {
+			return;
+		}
+
+		$this->api_record_event(
+			$this->event_name['added_to_cart'],
+			$properties = [
+				'eventCategory' => 'Products',
+				'eventLabel'    => htmlentities( $product->get_title(), ENT_QUOTES, 'UTF-8' ),
+				'eventValue'    => 1,
+			],
+			[
+				'add_to_cart' => [
+					'product'  => $product,
+					'quantity' => 1
+				],
+			]
 		);
-
-		$ec = array( 'add_to_cart' => array( 'product' => $product, 'quantity' => 1 ) );
-
-		$this->api_record_event( $this->event_name['added_to_cart'], $properties, $ec );
 	}
 
 
@@ -1803,14 +1836,23 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 			$item    = WC()->cart->cart_contents[ $cart_item_key ];
 			$product = ! empty( $item['variation_id'] ) ? wc_get_product( $item['variation_id'] ) : wc_get_product( $item['product_id'] );
 
-			$properties = array(
-				'eventCategory' => 'Cart',
-				'eventLabel'    => htmlentities( $product->get_title(), ENT_QUOTES, 'UTF-8' ),
+			if ( ! $product ) {
+				return;
+			}
+
+			$this->api_record_event(
+				$this->event_name['removed_from_cart'],
+				[
+					'eventCategory' => 'Cart',
+					'eventLabel'    => htmlentities( $product->get_title(), ENT_QUOTES, 'UTF-8' ),
+				],
+				[
+					'remove_from_cart' => [
+						'product'   => $product,
+						'cart_item' => $item,
+					]
+				]
 			);
-
-			$ec = array( 'remove_from_cart' => array( 'product' => $product ) );
-
-			$this->api_record_event( $this->event_name['removed_from_cart'], $properties, $ec );
 		}
 	}
 
@@ -1950,17 +1992,7 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 		$handler_js .= $this->get_event_tracking_js( $this->event_name['provided_billing_email'], $properties );
 
 		$user_logged_in = is_user_logged_in();
-		$billing_email  = null;
-
-		// TODO it looks like in WooCommerce versions prior to v3.0 there isn't a get_billing_email() method equivalent, and using the current user WP email isn't accurate {FN 2017-04-21}
-		if ( $user_logged_in ) {
-			if ( Framework\SV_WC_Plugin_Compatibility::is_wc_version_gte_3_0() ) {
-				$billing_email = WC()->customer->get_billing_email();
-			} else {
-				$current_user  = wp_get_current_user();
-				$billing_email = $current_user->user_email;
-			}
-		}
+		$billing_email  = $user_logged_in ? WC()->customer->get_billing_email() : '';
 
 		// track the billing email only once for the logged in user, if they have one
 		if ( $user_logged_in && is_email( $billing_email ) && $this->not_page_reload() ) {
@@ -2047,6 +2079,9 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 	public function placed_order( $order_id ) {
 
 		$order = wc_get_order( $order_id );
+
+		// mark the order as placed, which prevents us from tracking completed orders that were placed before GA Pro was enabled
+		update_post_meta( $order->get_id(), '_wc_google_analytics_pro_placed', 'yes' );
 
 		$properties = array(
 			'eventCategory'  => 'Checkout',
@@ -2155,6 +2190,11 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 
 		// don't track order when its already tracked
 		if ( 'yes' === get_post_meta( $order_id, '_wc_google_analytics_pro_tracked', true ) ) {
+			return;
+		}
+
+		// don't track order when we haven't tracked the 'placed' event - this prevents tracking old orders that were placed before GA Pro was active
+		if ( 'yes' !== get_post_meta( $order_id, '_wc_google_analytics_pro_placed', true ) ) {
 			return;
 		}
 
@@ -2390,7 +2430,9 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 	 * Tracks when an order is refunded.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @param int $order_id the order ID
+	 * @param int $refund_id the refund ID
 	 */
 	public function order_refunded( $order_id, $refund_id ) {
 
@@ -2424,12 +2466,12 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 		/* this filter is documented in class-wc-google-analytics-pro-integration.php */
 		$use_cents = (bool) apply_filters( 'wc_google_analytics_pro_purchase_event_use_cents', true, 'order_refunded', $refund );
 
-		$refund_amount = Framework\SV_WC_Plugin_Compatibility::is_wc_version_gte_3_0() ? $refund->get_amount() : $refund->get_refund_amount();
-		$properties    = array(
+		$refund_amount = $refund->get_amount();
+		$properties    = [
 			'eventCategory' => 'Orders',
 			'eventLabel'    => $order->get_order_number(),
 			'eventValue'    => $use_cents ? round( $refund_amount * 100 ) : floor( $refund_amount ),
-		);
+		];
 
 		// Enhanced Ecommerce can only track full refunds and refunds for specific items
 		if ( doing_action( 'woocommerce_order_fully_refunded' ) || ! empty( $refunded_items ) ) {
@@ -2684,13 +2726,13 @@ window.wc_ga_pro.is_valid_email = function( email ) {
 	 */
 	public function get_order_identities( $order ) {
 
-		$cid = $this->get_order_ga_identity( Framework\SV_WC_Order_Compatibility::get_prop( $order, 'id' ) );
+		$cid = $this->get_order_ga_identity( $order->get_id() );
 
 		return array(
-			'cid' => $cid ? $cid : $this->get_cid(),
-			'uid' => Framework\SV_WC_Order_Compatibility::get_prop( $order, 'customer_id' ),
-			'uip' => Framework\SV_WC_Plugin_Compatibility::is_wc_version_gte_3_0() ? $order->get_customer_ip_address() : $order->customer_ip_address,
-			'ua'  => Framework\SV_WC_Plugin_Compatibility::is_wc_version_gte_3_0() ? $order->get_customer_user_agent() : $order->customer_user_agent,
+			'cid' => $cid ?: $this->get_cid(),
+			'uid' => $order->get_customer_id( 'edit' ),
+			'uip' => $order->get_customer_ip_address(),
+			'ua'  => $order->get_customer_user_agent(),
 		);
 	}
 

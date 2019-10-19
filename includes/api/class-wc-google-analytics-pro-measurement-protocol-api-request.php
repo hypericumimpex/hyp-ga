@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_4_0 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_4_1 as Framework;
 
 /**
  * The Measurement Protocol API request class.
@@ -203,43 +203,47 @@ class WC_Google_Analytics_Pro_Measurement_Protocol_API_Request implements Framew
 	 * Adds parameters to track the enhanced ecommerce add-to-cart event.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @param \WC_Product $product the product object
-	 * @param int $quantity the product cart quantity
+	 * @param int|float $quantity the product cart quantity
+	 * @param string $cart_item_key the item key of the product added to cart
 	 */
-	public function track_ec_add_to_cart( $product, $quantity ) {
+	public function track_ec_add_to_cart( $product, $quantity, $cart_item_key = '' ) {
 
 		$product_identifier = wc_google_analytics_pro()->get_integration()->get_product_identifier( $product );
 		$category_hierarchy = wc_google_analytics_pro()->get_integration()->get_category_hierarchy( $product );
 		$product_variant    = wc_google_analytics_pro()->get_integration()->get_product_variation_attributes( $product );
 
-		$product_list = wc_google_analytics_pro()->get_integration()->get_list_type();
+		$parent_id  = Framework\SV_WC_Product_Compatibility::get_prop( $product, 'parent_id' );
+		$product_id = $parent_id ?: Framework\SV_WC_Product_Compatibility::get_prop( $product, 'id' );
 
-		$product_id = ( $parent_id = Framework\SV_WC_Product_Compatibility::get_prop( $product, 'parent_id' ) ) ? $parent_id : Framework\SV_WC_Product_Compatibility::get_prop( $product, 'id' );
-
-		// if this is a single product page and the event is for the main
-		// product, we don't specify a list
+		// if this is a single product page and the event is for the main product, we don't specify a list
 		if ( is_single() && $product_id === (int) get_the_ID() ) {
 			$product_list = '';
+		} else {
+			$product_list = wc_google_analytics_pro()->get_integration()->get_list_type();
 		}
 
 		/**
-		 * Filters the enhanced ecommerce add to cart event parameters
+		 * Filters the enhanced ecommerce add to cart event parameters.
 		 *
 		 * @since 1.1.1
-		 * @param array $parameters An associative array of enhanced ecommerce add to cart event parameters
-		 * @param \WC_Product $product The product
-		 * @param int $quantity The item quantity
+		 *
+		 * @param array $parameters an associative array of enhanced ecommerce add to cart event parameters
+		 * @param \WC_Product $product the product
+		 * @param int|float $quantity the item quantity
+		 * @param string $cart_item_key the item key of the product added to cart
 		 */
-		$this->add_parameters( apply_filters( 'wc_google_analytics_pro_api_ec_add_to_cart_parameters', array(
-			'pa'    => 'add',                                                   // product action
-			'pal'   => $product_list,                                           // product list
-			'pr1id' => $product_identifier,                                     // product id
-			'pr1nm' => $product->get_title(),                                   // product name
-			'pr1ca' => $category_hierarchy,                                     // product category
-			'pr1pr' => $product->get_price(),                                   // product price
-			'pr1qt' => $quantity,                                               // product quantity
-			'pr1va' => $product_variant,                                        // product variant
-		), $product, $quantity ) );
+		$this->add_parameters( apply_filters( 'wc_google_analytics_pro_api_ec_add_to_cart_parameters', [
+			'pa'    => 'add',                 // product action
+			'pal'   => $product_list,         // product list
+			'pr1id' => $product_identifier,   // product id
+			'pr1nm' => $product->get_title(), // product name
+			'pr1ca' => $category_hierarchy,   // product category
+			'pr1pr' => $product->get_price(), // product price
+			'pr1qt' => $quantity,             // product quantity
+			'pr1va' => $product_variant,      // product variant
+		], $product, $quantity, $cart_item_key ) );
 	}
 
 
@@ -247,31 +251,35 @@ class WC_Google_Analytics_Pro_Measurement_Protocol_API_Request implements Framew
 	 * Adds parameters to track the enhanced ecommerce remove-from-cart event.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @param \WC_Product $product the product object
+	 * @param array $cart_item data from the product just removed from cart
 	 */
-	public function track_ec_remove_from_cart( $product ) {
+	public function track_ec_remove_from_cart( $product, $cart_item = [] ) {
 
 		$product_identifier = wc_google_analytics_pro()->get_integration()->get_product_identifier( $product );
 		$category_hierarchy = wc_google_analytics_pro()->get_integration()->get_category_hierarchy( $product );
 		$product_variant    = wc_google_analytics_pro()->get_integration()->get_product_variation_attributes( $product );
 
 		/**
-		 * Filters the enhanced ecommerce remove from cart event parameters
+		 * Filters the enhanced ecommerce remove from cart event parameters.
 		 *
 		 * @since 1.1.1
-		 * @param array $parameters An associative array of enhanced ecommerce remove from cart event parameters
-		 * @param \WC_Product $product The product
+		 *
+		 * @param array $parameters an associative array of enhanced ecommerce remove from cart event parameters
+		 * @param \WC_Product $product the product removed from cart
+		 * @param array $cart_item the cart data of the product removed
 		 */
-		$this->add_parameters( apply_filters( 'wc_google_analytics_pro_api_ec_remove_from_cart_parameters', array(
-			'pa'    => 'remove',                                                // product action
-			'pal'   => '',                                                      // product list
-			'pr1id' => $product_identifier,                                     // product id
-			'pr1nm' => $product->get_title(),                                   // product name
-			'pr1ca' => $category_hierarchy,                                     // product category
-			'pr1pr' => $product->get_price(),                                   // product price
-			'pr1qt' => '1',                                                     // product quantity
-			'pr1va' => $product_variant,                                        // product variant
-		), $product ) );
+		$this->add_parameters( apply_filters( 'wc_google_analytics_pro_api_ec_remove_from_cart_parameters', [
+			'pa'    => 'remove',              // product action
+			'pal'   => '',                    // product list
+			'pr1id' => $product_identifier,   // product id
+			'pr1nm' => $product->get_title(), // product name
+			'pr1ca' => $category_hierarchy,   // product category
+			'pr1pr' => $product->get_price(), // product price
+			'pr1qt' => '1',                   // product quantity
+			'pr1va' => $product_variant,      // product variant
+		], $product, $cart_item ) );
 	}
 
 
@@ -279,21 +287,23 @@ class WC_Google_Analytics_Pro_Measurement_Protocol_API_Request implements Framew
 	 * Adds parameters to track the enhanced ecommerce completed purchase event.
 	 *
 	 * @since 1.0.0
+	 *
 	 * @param \WC_Order $order the order object
 	 */
 	public function track_ec_purchase( $order ) {
 
 		$order_currency = Framework\SV_WC_Order_Compatibility::get_prop( $order, 'currency', 'view' );
+		$coupon_codes   = implode( ',', Framework\SV_WC_Plugin_Compatibility::is_wc_version_gte( '3.7' ) ? $order->get_coupon_codes() : $order->get_used_coupons() );
 
-		// Set general data about the purchase
+		// set general data about the purchase
 		$params = array(
-			'pa'  => 'purchase',                                                // product action
-			'ti'  => $order->get_order_number(),                                // transaction ID, required
-			'tr'  => $order->get_total(),                                       // revenue
-			'tt'  => $order->get_total_tax(),                                   // tax
-			'ts'  => $order->get_total_shipping(),                              // shipping
-			'tcc' => implode( ',', $order->get_used_coupons() ),                // coupon code
-			'cu'  => $order_currency,                                           // order currency
+			'pa'  => 'purchase',                   // product action
+			'ti'  => $order->get_order_number(),   // transaction ID, required
+			'tr'  => $order->get_total(),          // revenue
+			'tt'  => $order->get_total_tax(),      // tax
+			'ts'  => $order->get_total_shipping(), // shipping
+			'tcc' => $coupon_codes,                // coupon code
+			'cu'  => $order_currency,              // order currency
 		);
 
 		$c = 0;
@@ -308,21 +318,22 @@ class WC_Google_Analytics_Pro_Measurement_Protocol_API_Request implements Framew
 			$category_hierarchy = wc_google_analytics_pro()->get_integration()->get_category_hierarchy( $product );
 			$product_variant    = wc_google_analytics_pro()->get_integration()->get_product_variation_attributes( $product );
 
-			$params["pr{$c}id"] = $product_identifier;                          // product ID
-			$params["pr{$c}nm"] = $item['name'];                                // product name
-			$params["pr{$c}ca"] = $category_hierarchy;                          // product category
-			$params["pr{$c}br"] = '';                                           // product brand
-			$params["pr{$c}pr"] = $order->get_item_total( $item );              // product price
-			$params["pr{$c}qt"] = $item['qty'];                                 // product quantity
-			$params["pr{$c}va"] = $product_variant;                             // product variant
+			$params["pr{$c}id"] = $product_identifier;             // product ID
+			$params["pr{$c}nm"] = $item['name'];                   // product name
+			$params["pr{$c}ca"] = $category_hierarchy;             // product category
+			$params["pr{$c}br"] = '';                              // product brand
+			$params["pr{$c}pr"] = $order->get_item_total( $item ); // product price
+			$params["pr{$c}qt"] = $item['qty'];                    // product quantity
+			$params["pr{$c}va"] = $product_variant;                // product variant
 		}
 
 		/**
-		 * Filters the enhanced ecommerce completed purchase event parameters
+		 * Filters the enhanced ecommerce completed purchase event parameters.
 		 *
 		 * @since 1.1.1
-		 * @param array $parameters An associative array of enhanced ecommerce completed purchase event parameters
-		 * @param \WC_Order $order The order
+		 *
+		 * @param array $parameters an associative array of enhanced ecommerce completed purchase event parameters
+		 * @param \WC_Order $order the order
 		 */
 		$this->add_parameters( apply_filters( 'wc_google_analytics_pro_api_ec_purchase_parameters', $params, $order ) );
 	}

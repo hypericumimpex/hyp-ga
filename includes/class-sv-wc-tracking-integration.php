@@ -21,7 +21,7 @@
  * @license     http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0
  */
 
-namespace SkyVerge\WooCommerce\PluginFramework\v5_4_0;
+namespace SkyVerge\WooCommerce\PluginFramework\v5_4_1;
 
 defined( 'ABSPATH' ) or exit;
 
@@ -128,8 +128,12 @@ class SV_WC_Tracking_Integration extends \WC_Integration {
 
 		// removed product from cart (Properties: Product Name)
 		if ( $this->has_event( 'removed_from_cart' ) ) {
-			add_action( 'woocommerce_before_cart_item_quantity_zero', array( $this, 'removed_from_cart' ) );
-			add_action( 'woocommerce_remove_cart_item',               array( $this, 'removed_from_cart' ) );
+
+			if ( SV_WC_Plugin_Compatibility::is_wc_version_lt( '3.7' ) ) {
+				add_action( 'woocommerce_before_cart_item_quantity_zero', [ $this, 'removed_from_cart' ] );
+			}
+
+			add_action( 'woocommerce_remove_cart_item', [ $this, 'removed_from_cart' ] );
 		}
 
 		// changed quantity of product in cart (properties: Product Name, Quantity )

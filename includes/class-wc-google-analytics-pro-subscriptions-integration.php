@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) or exit;
 
-use SkyVerge\WooCommerce\PluginFramework\v5_4_0 as Framework;
+use SkyVerge\WooCommerce\PluginFramework\v5_4_1 as Framework;
 
 /**
 * Google Analytics Pro Subscriptions Integration
@@ -188,7 +188,16 @@ class WC_Google_Analytics_Pro_Subscriptions_Integration {
 		$this->track_subscription_event( 'subscription_trial_ended', $subscription, true );
 
 		// handle trial conversions - if a subscription has more than a single completed payment, assume it converted
-		if ( $subscription->get_completed_payment_count() > 1 ) {
+		if ( version_compare( \WC_Subscriptions::$version, '2.6', '>=' ) ) {
+
+			$payment_count = $subscription->get_payment_count();
+
+		} else {
+
+			$payment_count = $subscription->get_completed_payment_count();
+		}
+
+		if ( $payment_count > 1 ) {
 			$this->track_subscription_event( 'subscription_trial_converted', $subscription, true );
 		} else {
 			$this->track_subscription_event( 'subscription_trial_cancelled', $subscription, true );
