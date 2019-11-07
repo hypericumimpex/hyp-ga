@@ -19,7 +19,7 @@
         },
         "time": "2019-08-06T22:42:22+00:00",
         "type": "library",
-        "installation-source": "dist",
+        "installation-source": "source",
         "description": "The official SkyVerge WooCommerce plugin framework",
         "support": {
             "source": "https://github.com/skyverge/wc-plugin-framework/tree/5.4.1",

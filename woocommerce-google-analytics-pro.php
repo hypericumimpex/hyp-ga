@@ -5,7 +5,7 @@
  * Description: Hypericum Google Analytics tracking with enhanced eCommerce tracking and custom event tracking.
  * Author: Romeo C.
  * Author URI: https://github.com/hypericumimpex/
- * Version: 1.8.4
+ * Version: 1.8.5
  * Text Domain: woocommerce-google-analytics-pro
  * Domain Path: /i18n/languages/
  *
@@ -21,7 +21,7 @@
  *
  * Woo: 1312497:d8aed8b7306b509eec1589e59abe319f
  * WC requires at least: 3.0.9
- * WC tested up to: 3.7.1
+ * WC tested up to: 3.8
  */
 
 defined( 'ABSPATH' ) or exit;
